@@ -30,29 +30,33 @@ async function run() {
 
     console.log("MongoDB connected successfully!");
 
-    // ======================================================
-    // Get all crops
-    // ======================================================
+    // ================= GET all crops =================
     app.get("/crops", async (req, res) => {
-      const result = await cropsCollection.find().toArray();
-      res.send(result);
+      try {
+        const result = await cropsCollection.find().toArray();
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to fetch crops" });
+      }
     });
 
-    // ======================================================
-    // Get latest 6 crops
-    // ======================================================
+    // ================= GET latest 6 crops =================
     app.get("/latest-crops", async (req, res) => {
-      const result = await cropsCollection
-        .find()
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .toArray();
-      res.send(result);
+      try {
+        const result = await cropsCollection
+          .find()
+          .sort({ createdAt: -1 })
+          .limit(6)
+          .toArray();
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to fetch latest crops" });
+      }
     });
 
-    // ======================================================
-    // Get crop details by ID
-    // ======================================================
+    // ================= GET crop by ID =================
     app.get("/crops/:id", async (req, res) => {
       try {
         const id = req.params.id;
@@ -64,9 +68,7 @@ async function run() {
       }
     });
 
-    // ======================================================
-    // Add new crop
-    // ======================================================
+    // ================= POST add new crop =================
     app.post("/crops", async (req, res) => {
       try {
         const crop = req.body;
@@ -79,9 +81,47 @@ async function run() {
       }
     });
 
-    // ======================================================
-    // Submit interest
-    // ======================================================
+    // ================= PUT update crop =================
+    app.put("/crops/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedData = req.body;
+
+        const result = await cropsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedData }
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(404).send({ message: "Crop not found or no change" });
+        }
+
+        res.send({ message: "Crop updated successfully" });
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to update crop" });
+      }
+    });
+
+    // ================= DELETE crop =================
+    app.delete("/crops/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        const result = await cropsCollection.deleteOne({ _id: new ObjectId(id) });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ message: "Crop not found" });
+        }
+
+        res.send({ message: "Crop deleted successfully" });
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to delete crop" });
+      }
+    });
+
+    // ================= POST submit interest =================
     app.post("/interest", async (req, res) => {
       try {
         const interest = req.body;
@@ -104,9 +144,7 @@ async function run() {
       }
     });
 
-    // ======================================================
-    // Get all interests for a crop
-    // ======================================================
+    // ================= GET interests for a crop =================
     app.get("/interest/:cropId", async (req, res) => {
       try {
         const cropId = req.params.cropId;
@@ -118,9 +156,7 @@ async function run() {
       }
     });
 
-    // ======================================================
-    // Get all interests for a user
-    // ======================================================
+    // ================= GET interests for a user =================
     app.get("/interests", async (req, res) => {
       try {
         const userEmail = req.query.userEmail;
@@ -134,9 +170,7 @@ async function run() {
       }
     });
 
-    // ======================================================
-    // Update interest status
-    // ======================================================
+    // ================= PATCH update interest status =================
     app.patch("/interest/:id", async (req, res) => {
       try {
         const interestId = req.params.id;
@@ -153,8 +187,9 @@ async function run() {
         res.status(500).send({ message: "Failed to update status" });
       }
     });
+
   } finally {
-    // Do not close connection; server keeps running
+    // keep the connection open
   }
 }
 
